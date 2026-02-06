@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import optax
 from jax import jit, value_and_grad
-from cvnn_v1 import *
+from cvnn_v2 import *
 
 def init_params(key, layer_sizes):
 	params = []
@@ -17,13 +17,13 @@ def init_params(key, layer_sizes):
 		# 這有助於在訓練過程中穩定梯度，防止梯度消失或爆炸。
 		stddev = jnp.sqrt(2. / (in_dim + out_dim))
 
-		# 初始化實部和虛部權重，並堆疊成 (in_dim, out_dim, 2) 的形狀
+		# 初始化實部和虛部權重，並組合成複數
 		weights_real = jax.random.normal(w_real_key, (in_dim, out_dim)) * stddev
 		weights_imag = jax.random.normal(w_imag_key, (in_dim, out_dim)) * stddev
-		weights = jnp.stack([weights_real, weights_imag], axis=-1)
+		weights = weights_real + 1j * weights_imag
 
-		# 偏置初始化為零，形狀為 (out_dim, 2) 以適應複數
-		biases = jnp.zeros((out_dim, 2))
+		# 偏置初始化為零，使用複數型態
+		biases = jnp.zeros((out_dim,), dtype=jnp.complex64)
 		params.append({'weights': weights, 'biases': biases})
 	return params
 
@@ -61,13 +61,15 @@ def loss_fn(params, x, y):
 	y_pred = forward_pass(params, x)
 
 	error = y_pred - y
-	loss = jnp.mean(jnp.sum(error**2, axis=-1))
+	loss = jnp.mean(jnp.abs(error)**2)
 
 	return loss;
 
 @jit
 def update_step(params, opt_state, x, y):
 	loss, grads = value_and_grad(loss_fn)(params, x, y)
+	# JAX returns the conjugate gradient for complex parameters, so we conjugate it back
+	grads = jax.tree_util.tree_map(jnp.conj, grads)
 	updates, next_opt_state = optimizer.update(grads, opt_state, params)
 	next_params = optax.apply_updates(params, updates)
 	return next_params, next_opt_state, loss

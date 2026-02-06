@@ -92,7 +92,7 @@ def complex_matmul(A, B):
 @jax.jit
 def complex_sigmoid(z):
     r, theta = to_polar(z)
-    r_activated = 1 / (1 + jnp.exp(-r))
+    r_activated = jax.nn.sigmoid(r)
 
     return from_polar(r_activated, theta)
 

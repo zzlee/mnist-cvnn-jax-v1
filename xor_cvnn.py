@@ -74,6 +74,8 @@ def loss_fn(params, x, y):
 @jit
 def update_step(params, opt_state, x, y):
 	loss, grads = value_and_grad(loss_fn)(params, x, y)
+	# JAX returns the conjugate gradient for complex parameters, so we conjugate it back
+	grads = jax.tree_util.tree_map(jnp.conj, grads)
 	updates, next_opt_state = optimizer.update(grads, opt_state, params)
 	next_params = optax.apply_updates(params, updates)
 	return next_params, next_opt_state, loss
