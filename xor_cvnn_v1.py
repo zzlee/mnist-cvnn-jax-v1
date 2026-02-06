@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import optax
 from jax import jit, value_and_grad
-from cvnn import *
+from cvnn_v1 import *
 
 def init_params(key, layer_sizes):
 	params = []
